@@ -5,15 +5,30 @@
     "version": "0.2.0",
     "configurations": [
       {
+        "name": "ROS2 executable build and debug",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/build/${input:package}/${input:program}",
+        "args": [],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}/",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "gdb",
+        "setupCommands": [
+            {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            }
+        ],
+        "preLaunchTask": "buildROS2",
+        "miDebuggerPath": "/usr/bin/gdb"
+      },
+      {
         "name": "ROS: Attach",
         "type": "ros",
         "request": "attach"
-      },
-      {
-        "name": "ROS: Launch",
-        "type": "ros",
-        "request": "launch",
-        "target": "absolute path to launch file"
       },
       {
         "name": "g++ - Build and debug active file",
@@ -35,17 +50,17 @@
         ],
         "preLaunchTask": "C/C++: g++ build active file",
         "miDebuggerPath": "/usr/bin/gdb"
-      }
+      },
     ],
     "inputs": [
       {
       "id": "package",
       "type": "promptString",
-      "description": "Package name"
+      "description": "ROS2 package name"
       },
       {
       "id": "program",
       "type": "promptString",
-      "description": "Program name"
+      "description": "ROS2 executable name"
       }]
 }
