@@ -31,6 +31,12 @@
         "request": "attach"
       },
       {
+        "name": "ROS: Launch",
+        "type": "ros",
+        "request": "launch",
+        "target": "absolute path to launch file"
+      },
+      {
         "name": "g++ - Build and debug active file",
         "type": "cppdbg",
         "request": "launch",

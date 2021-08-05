@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(had_gazebo_robot_demo)
+project(dds_tsn_demo)
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
@@ -28,7 +28,7 @@ function(custom_executable target)
   DESTINATION lib/${PROJECT_NAME})
 endfunction()
 
-custom_executable(had_control)
+custom_executable(vehicle_control)
 
 # Install launch files.
 install(DIRECTORY

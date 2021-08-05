@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format2.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="2">
-  <name>had_gazebo_robot_demo</name>
+  <name>dds_tsn_demo</name>
   <version>0.0.1</version>
   <description>
     Demo DDS-TSN integration in ROS2

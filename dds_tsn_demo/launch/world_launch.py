@@ -21,7 +21,7 @@ import os
 import sys
 
 def generate_launch_description():
-    gazebo_world_path = os.path.join(os.getcwd(), 'had_gazebo_robot_demo/world')
+    gazebo_world_path = os.path.join(os.getcwd(), 'dds_tsn_demo/world')
     gazebo_world = os.path.join(gazebo_world_path, 'gazebo_diff_drive_moose_test.world')
     return LaunchDescription([
         launch.actions.ExecuteProcess(

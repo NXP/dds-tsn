@@ -8,23 +8,27 @@ As illustrated below, this demo uses three machines connected to a TSN Ethernet 
 
 <p align="center"><img src="images/dds_tsn_mini_demo.png" alt="simplified demo architecture" width="700" class="center"/></p>
 
-The DDS-TSN mapping demo instructions below leverage the DDS XML profiles for [Connext DDS](had_gazebo_robot_demo/src/dds_tsn_profile_connext.xml) and [Fast DDS](had_gazebo_robot_demo/src/dds_tsn_profile_fastdds.xml). The XML files bind the DDS communication sockets to the VLAN interface, which has a built-in VLAN tagging rule assigning the outgoing traffic a higher priority.
+The DDS-TSN mapping demo instructions below leverage the DDS XML profiles for [Connext DDS](dds_tsn_demo/src/dds_tsn_profile_connext.xml) and [Fast DDS](dds_tsn_demo/src/dds_tsn_profile_fastdds.xml). The XML files bind the DDS communication sockets to the VLAN interface, which has a built-in VLAN tagging rule assigning the outgoing traffic a higher priority.
 
 ## Prerequisites
 - three machines with Ubuntu 20.04, machines A and B can be embedded ARM-based systems, machine C will benefit from a discrete GPU
-- ROS2 Foxy base and `iproute2` for the `tc` command on machines A:
-```bash
-sudo apt install -y ros-foxy-ros-base python3-colcon-ros iproute2
-```
-- `iperf` on machines B:
-```bash
-sudo apt install -y iperf
-```
-- ROS2 Foxy and Gazebo on machine C:
-```bash
-sudo apt install -y ros-foxy-desktop python3-colcon-ros ros-foxy-gazebo-ros ros-foxy-gazebo-plugins iperf iproute2
-```
 - a TSN-capable Ethernet switch, such as NXP [SJA1110](https://www.nxp.com/products/interfaces/ethernet-/automotive-ethernet-switches/multi-gig-safe-and-secure-tsn-ethernet-switch-with-integrated-100base-t1-phys:SJA1110).
+- ROS2 Foxy base and `iproute2` for the `tc` command on machines A:
+    follow the official [ROS2 installation instructions](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html#set-locale) to install ROS2 Foxy *base*.
+    Then install other dependencies:
+    ```bash
+    sudo apt install -y python3-colcon-ros iproute2
+    ```
+- `iperf` on machines B:
+    ```bash
+    sudo apt install -y iperf
+    ```
+- ROS2 Foxy and Gazebo on machine C:
+    follow the official [ROS2 installation instructions](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html#set-locale) to install ROS2 Foxy *desktop*.
+    Then install Gazebo and other dependencies:
+    ```bash
+    sudo apt install -y python3-colcon-ros ros-foxy-gazebo-ros ros-foxy-gazebo-plugins iperf iproute2
+    ```
 
 ## Installation
 1. Our demonstration supports RTI Connext DDS and the Fast DDS, which is pre-installed in ROS2 Foxy. The RTI Connext DDS can be installed by following the documentation [here](https://github.com/ros2/rmw_connextdds) on machines A and C:
@@ -77,13 +81,13 @@ sudo apt install -y ros-foxy-desktop python3-colcon-ros ros-foxy-gazebo-ros ros-
     iperf -s -u > /dev/null 2>&1 &
 2. Start Gazebo on machine C, the vehicle will remain still:
     ```bash
-    ros2 launch had_gazebo_robot_demo world_launch.py
+    ros2 launch dds_tsn_demo world_launch.py
     ```
-3. Start the controller on machine A to drive the vehicle in the simulator using the physical interface:
+3. Start the controller on machine A to drive the vehicle in the simulator **using the physical interface**. Access via `ssh` can be heavily interfered by the interference stream introduced during the test:
     ```bash
     unset NDDS_QOS_PROFILES # disable XML profile for Connext DDS
     unset FASTRTPS_DEFAULT_PROFILES_FILE # disable XML profile for FastDDS
-    ros2 run had_gazebo_robot_demo had_control # alternatively you can use control_launch.py
+    ros2 run dds_tsn_demo vehicle_control # or use control_launch.py
     ```
 4. When the vehicle starts moving, start interference on machine B towards the physical network interface of machine C:
     ```bash
@@ -92,9 +96,9 @@ sudo apt install -y ros-foxy-desktop python3-colcon-ros ros-foxy-gazebo-ros ros-
 5. The vehicle is likely to crash into the pedestrian or another vehicle in Gazebo. Close the Gazebo simulator and kill the vehicle control from step 4.
 6. Let's leverage the DDS-TSN integration to mitigate interference by coupling DDS traffic to TSN VLAN tags, which will prioritize the data transmission. Restart the Gazebo by following step 2. Then, on machine A, export the DDS profile XML, bring up the virtual network, and run the control node:
     ```bash
-    export NDDS_QOS_PROFILES=$(pwd)/had_gazebo_robot_demo/src/dds_tsn_profile_connext.xml # for Connext DDS
-    export FASTRTPS_DEFAULT_PROFILES_FILE=$(pwd)/had_gazebo_robot_demo/src/dds_tsn_profile_fastdds.xml # for Fast DDS
-    ros2 run had_gazebo_robot_demo had_control
+    export NDDS_QOS_PROFILES=$(pwd)/dds_tsn_demo/src/dds_tsn_profile_connext.xml # for Connext DDS
+    export FASTRTPS_DEFAULT_PROFILES_FILE=$(pwd)/dds_tsn_demo/src/dds_tsn_profile_fastdds.xml # for Fast DDS
+    ros2 run dds_tsn_demo vehicle_control
     ```
 7. Now start the interference as described in step 4.
 8. The vehicle should be able to successfully finish the moose test in the Gazebo simulation thanks to prioritized vehicle control traffic.
@@ -132,7 +136,11 @@ The following steps have been tested on a Ubuntu 20.04 machine with ROS Foxy.
 ## Troubleshooting
 1. If you get an error while starting Gazebo `X Error of failed request: BadValue (integer parameter out of range for operation)` try rebooting your machine. 
 1. If you can't start Gazebo due to an error `[gazebo-1] [Err] [Master.cc:95] EXCEPTION: Unable to start server[bind: Address already in use]. There is probably another Gazebo process running.`, run `killall gzserver gzclient`.
-
+1. During ROS installation, apt update fails due to ROS repository public key issues. To resolve it, run the commands below:
+    ```
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+    sudo apt update
+    ```
 ## Useful links
 1. https://tsn.readthedocs.io/index.html - hands-on tutorial on TSN and VLAN support in GNU/Linux
 1. https://arxiv.org/pdf/1808.10821.pdf - excellent description of the GNU/Linux traffic control and its application in robotics

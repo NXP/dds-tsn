@@ -29,7 +29,7 @@ public:
   explicit VehicleController() : Node("vehicle_control")
   {
     const std::string odomTopicName = "/odom";
-    const std::string cmdTopic = "cmd_vel";
+    const std::string cmdTopic = "/cmd_vel";
     const size_t historyDepth = 5;
     const double poseResetPositionX = -10000;
 
