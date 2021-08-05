@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format2.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="2">
+  <name>had_gazebo_robot_demo</name>
+  <version>0.0.1</version>
+  <description>
+    Demo DDS-TSN integration in ROS2
+  </description>
+  <maintainer email="andrei.terechko@nxp.com">Andrei Terechko</maintainer>
+  <license>Apache License 2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <build_depend>rclcpp</build_depend>
+  <build_depend>rcutils</build_depend>
+  <build_depend>rmw</build_depend>
+  <build_depend>rmw_implementation_cmake</build_depend>
+
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>rcutils</exec_depend>
+  <exec_depend>rmw</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+<!-- Schema: https://github.com/eProsima/Fast-DDS/blob/master/resources/xsd/fastRTPS_profiles.xsd -->
+    <transport_descriptors>
+        <transport_descriptor>
+            <transport_id>UdpVLANTransport</transport_id>
+            <type>UDPv4</type>
+            <interfaceWhiteList>
+                <address>192.168.30.2</address>
+            </interfaceWhiteList>
+        </transport_descriptor>
+    </transport_descriptors>
+    <participant profile_name="UdpVLANTransportParticipant">
+        <rtps>
+            <userTransports>
+                <transport_id>UdpVLANTransport</transport_id>
+            </userTransports>
+        </rtps>
+    </participant>
+ </profiles>

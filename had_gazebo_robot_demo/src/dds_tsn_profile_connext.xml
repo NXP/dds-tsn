@@ -1,0 +1,49 @@
+<dds xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://community.rti.com/schema/6.0.1/rti_dds_qos_profiles.xsd" version="6.0.1">
+  <qos_library name="test">
+    <qos_profile name="UDPv4_properties" is_default_qos="true">
+      <participant_qos>
+        <property>
+          <value>
+            <element>
+              <name>dds.transport.UDPv4.builtin.parent.allow_interfaces_list</name>
+              <value>192.168.30.*</value>
+            </element>
+            <element>
+              <name>dds.transport.UDPv4.builtin.parent.deny_interfaces_list</name>
+              <value>10.10.1.*,192.168.0*,192.168.1.*</value>
+            </element>
+            <element>
+              <name>dds.transport.UDPv6.builtin.parent.deny_interfaces_list</name>
+              <value>*:*:*:*:*:*:*:*</value>
+            </element>
+            <!-- 8 bit mask of the IP DS field bits to set via transport_priority in DRs and DWs (all) -->
+            <element>
+              <name>dds.transport.UDPv4.builtin.transport_priority_mask</name>
+              <value>0x00000FF</value>
+            </element>
+          </value>
+        </property>
+      </participant_qos>
+      <!-- we can set the TRANSPORT_PRIORITY for the topic -->
+      <datawriter_qos topic_filter="rt/cmd_vel">
+        <transport_priority>
+          <!-- DSCP=5 (CS1), ECN=0, applies to sample data -->
+          <value>20</value>
+        </transport_priority>
+        <!-- QoS for synchronous publishing -->
+        <publish_mode>
+          <kind>SYNCHRONOUS_PUBLISH_MODE_QOS</kind>
+        </publish_mode>
+        <batch>
+          <enable>0</enable>
+        </batch>
+      </datawriter_qos>
+      <datareader_qos topic_filter="rt/cmd_vel">
+        <transport_priority>
+          <!-- DSCP=5 (CS1), ECN=0, applies to sample data -->
+          <value>20</value>
+        </transport_priority>
+      </datareader_qos>
+    </qos_profile>
+  </qos_library>
+</dds>
