@@ -67,12 +67,12 @@ private:
     };
     // fine-tuned steering commands to pass the moose test in the simulated world
     const std::vector<struct TwistCommand> steeringCommands = {
-      {"straightBeforeMooseTest", -5,    5,   0},
-      {"leftToAvoidPedestrian",   -1,    5,   0.4},
-      {"righToAvoidCar",           4.5,  5,  -0.6},
-      {"leftToStayInLane",         6.6,  5,   0.4},
-      {"straightAfterMooseTest",   6.5, -1.5, 0},
-      {"stopVehicle",              6.52, 0,   0},
+      {"straightBeforeMooseTest", -5.0,  5.0,  0.0},
+      {"leftToAvoidPedestrian",   -1.0,  5.0,  0.4},
+      {"righToAvoidCar",           4.5,  5.0, -0.6},
+      {"leftToStayInLane",         6.6,  5.0,  0.4},
+      {"straightAfterMooseTest",   6.5, -1.5,  0.0},
+      {"stopVehicle",              6.52, 0.0,  0.0},
     };
 
     static unsigned int stateId = 0;
