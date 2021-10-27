@@ -12,12 +12,13 @@ VLAN_IF=$PIF.$VLAN
 
 OPTION_B=${OPTION_B:-"off"}
 TOS=${TOS:-0x14} # full 8 bits for DSCP and ECN fields
-PCP=${PCP:-5}
+PCP=${PCP:-5} # the TOS field value in 0x14
 
 if [ "$OPTION_B" = "on" ]; then
     unset EGRESS_QOS_MAP
 fi
 
+echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 echo "Creating virtual network interface $VLAN_IF with $IP $EGRESS_QOS_MAP"
 sudo ip link delete $VLAN_IF || echo $VLAN_IF was not present, continuing...
 sudo ip link add link $PIF name $VLAN_IF type vlan id $VLAN $EGRESS_QOS_MAP
@@ -40,6 +41,7 @@ fi
 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 echo "Applied egress filters:"
 tc -s -d filter show dev $PIF egress
+
 echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
 echo "New interfaces:"
 ip address

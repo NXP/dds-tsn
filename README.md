@@ -11,9 +11,9 @@ As illustrated below, this demo uses three machines connected to a TSN Ethernet 
 The DDS-TSN mapping demo instructions below leverage the DDS XML profiles for [Connext DDS](dds_tsn_demo/src/dds_tsn_profile_connext.xml) and [Fast DDS](dds_tsn_demo/src/dds_tsn_profile_fastdds.xml). The XML files bind the DDS communication sockets to the VLAN interface, which has a built-in VLAN tagging rule assigning the outgoing traffic a higher priority, as we describe in configuration `Option A`. Another option is to map the DSCP/TOS filed in the IP header to the VLAN PCP value, which we describe in configuration `Option B`.
 
 ## Prerequisites
-- Three machines with Ubuntu 20.04, machines A and B can be embedded ARM-based systems, machine C will benefit from a discrete GPU
+- Three machines with Ubuntu 20.04, machines A and B can be embedded ARM-based systems, machine C will benefit from a discrete GPU.
 - A TSN-capable Ethernet switch with PCP and VLAN support included in IEEE 802.1Q-2014 and onwards. For example, the NXP [SJA1110](https://www.nxp.com/products/interfaces/ethernet-/automotive-ethernet-switches/multi-gig-safe-and-secure-tsn-ethernet-switch-with-integrated-100base-t1-phys:SJA1110).
-- ROS2 Foxy base and `iproute2` for the `tc` command on machines A:
+- ROS2 Foxy base and `iproute2` for the `tc` command on machine A:
     follow the official [ROS2 installation instructions](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html#set-locale) to install ROS2 Foxy *base*.
     Then install other dependencies:
     ```bash
@@ -27,7 +27,8 @@ The DDS-TSN mapping demo instructions below leverage the DDS XML profiles for [C
     CONFIG_NET_CLS_U32=y
     CONFIG_CLS_U32_MARK=y
     ```
-- `iperf3` on machines B:
+  In our experiment, the machine A runs on the i.MX 8M [NavQ](https://nxp.gitbook.io/8mmnavq/) Linux companion computer platform. The NavQ kernel can be configured and built following instructions [here](https://github.com/NXPmicro/meta-nxp-hovergames/tree/demo).
+- `iperf3` on machine B:
     ```bash
     sudo apt install -y iperf3
     ```
@@ -39,7 +40,7 @@ The DDS-TSN mapping demo instructions below leverage the DDS XML profiles for [C
     ```
 
 ## Installation
-1. Our demonstration supports RTI Connext DDS and the Fast DDS, which is pre-installed in ROS2 Foxy. The RTI Connext DDS can be installed by following the documentation [here](https://github.com/ros2/rmw_connextdds) on machines A and C.
+1. Our demonstration supports the Fast DDS, which is pre-installed and the default DDS middleware layer in ROS2 Foxy, and the RTI Connext DDS. The RTI Connext DDS can be installed by following the documentation [here](https://github.com/ros2/rmw_connextdds) on machines A and C.
     - For an Intel machine:
        ```bash
        # install free debian packages for Connext DDS on Intel machine
@@ -56,6 +57,8 @@ The DDS-TSN mapping demo instructions below leverage the DDS XML profiles for [C
     - For an ARM machine: the free Debian package of Connext DDS is not available for `arm64`, however, you can download Connext DDS Professional from [here](https://www.rti.com/products) and build it on the `arm64` target.
 1. Build the code from the directory of this README on machines A and C. If you use the Connext DDS, set the environment as described in the previous step.
     ```bash
+    git clone https://github.com/NXP/dds-tsn.git
+    cd dds_tsn
     source /opt/ros/foxy/setup.bash
     colcon build
     source install/setup.sh
@@ -74,9 +77,9 @@ PIF=eth0 NETMASK=10.10 EGRESS_QOS_MAP="egress-qos-map 0:4"  ./scripts/make_vlan.
 ```
 ### Option B: DSCP-to-PCP mapping with traffic control filter
 For this option, machine A needs specific kernel configuration, see details in *Prerequisites* section above.
-The DDS distribution in use should also support *TransportPriority* QoS policy.
+The DDS distribution in use should support *TransportPriority* QoS policy.
 At the moment of writing this README, [Fast DDS did not support this feature](https://fast-dds.docs.eprosima.com/en/latest/fastdds/api_reference/dds_pim/core/policy/transportpriorityqospolicy.html) and we used RTI's Connext DDS on `arm64` for the experiment.
-Alternatively, one can use machine A with an Intel processor and the free Debian package for RTI Connext DDS.
+Alternatively, one can use machine A with an Intel processor and the free Debian package for [RTI Connext DDS](https://www.rti.com/products).
 
 Configure VLAN interfaces with the IP address ending with `.2`. Assume your setup uses the physical interface `eth0`, netmask `10.10.*.*`, and filter on a given TOS value (default to 0x14):
 ```bash
