@@ -6,7 +6,7 @@ The demo video below shows the challenging [moose test](https://en.wikipedia.org
 1. collisions due to network interference without TSN features,
 1. TSN features enable a successful drive with network interference.
 
-https://user-images.githubusercontent.com/88086083/139669903-d1d5d773-a316-49b8-99cb-ed9fa7d277dc.mp4
+https://user-images.githubusercontent.com/88086083/140656406-81919e7b-8d37-4a7a-a331-be7cd32f6673.mp4
 
 As illustrated below, this demo uses three machines connected to a TSN Ethernet switch, imitating a robot sharing Ethernet links for streams with different criticality levels. `Machine C` runs the Gazebo simulation. The control of the modeled vehicle runs on an embedded controller `machine A` and publishes the safety-critical topic `/command` based on the data from the `/odometry` topic. An interference `machine B` floods the egress of `port 3` and interfere with the control traffic in the `/command` topic. This interference is likely to trigger a collision in the simulation. Interference may originate from a bug in `machine B`, see the bug icon, or from a network design sharing an Ethernet link between traffic streams with different criticality levels, see the fire icon. Fortunately, if we link the safety-critical DDS topic `/command` to a TSN stream with a high priority using [IEEE 802.1Q Priority-Based Scheduling (`PBS`)](https://en.wikipedia.org/wiki/Time-Sensitive_Networking#Scheduling_and_traffic_shaping), then the vehicle completes the moose test successfully. Furthermore, we can de-burst the interference traffic using the TSN's protocol [IEEE 802.1Qav Credit-Based Shaper (`CBS`)](https://en.wikipedia.org/wiki/Time-Sensitive_Networking#AVB_credit-based_scheduler) to ensure its egress bandwidth is limited.
 
@@ -17,7 +17,7 @@ The DDS-TSN mapping demo instructions below leverage the DDS XML profiles for [C
 
 ## Prerequisites
 - Three machines with Ubuntu 20.04, machines A and B can be embedded ARM-based systems, machine C will benefit from a discrete GPU.
-- A TSN-capable Ethernet switch with PCP and VLAN support included in IEEE 802.1Q-2014 and onwards. For example, the NXP [SJA1110](https://www.nxp.com/products/interfaces/ethernet-/automotive-ethernet-switches/multi-gig-safe-and-secure-tsn-ethernet-switch-with-integrated-100base-t1-phys:SJA1110).
+- A TSN-capable Ethernet switch with PCP and VLAN support included in IEEE 802.1Q-2014 and onwards. For example, the NXP [SJA1110](https://www.nxp.com/products/interfaces/ethernet-/automotive-ethernet-switches/multi-gig-safe-and-secure-tsn-ethernet-switch-with-integrated-100base-t1-phys:SJA1110). In our experiment, we use the SJA1110 switch on the [S32G-VNP-RDB](https://www.nxp.com/design/designs/s32g-reference-design-for-vehicle-network-processing:S32G-VNP-RDB) board, which is the S32G reference design for vehicle network processing.
 - ROS2 Foxy base and `iproute2` for the `tc` command on machine A:
     follow the official [ROS2 installation instructions](https://docs.ros.org/en/foxy/Installation/Ubuntu-Install-Debians.html#set-locale) to install ROS2 Foxy *base*.
     Then install other dependencies:
