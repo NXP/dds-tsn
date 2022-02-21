@@ -1,6 +1,6 @@
 NXP Software Content Register
 
-Version:                   1.0
+Version:                   1.2
 Outgoing License:          Apache-2.0
 License File:              LICENSE
 Type of content:           Source code
@@ -8,3 +8,5 @@ Description and comments:  Example project of DDS-TSN integration
 Release Location:          GitHub
 Origin:                    Code written by NXP
                            ROS 2 (Apache-2.0) - https://github.com/ros2
+                           Pyshark (MIT) - https://pypi.org/project/pyshark
+                           tabulate (MIT) - https://pypi.org/project/tabulate

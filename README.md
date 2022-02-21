@@ -1,6 +1,13 @@
 # ROS2-DDS-TSN integration demo
 This repository demonstrates basic advantages of integrating the [Data Distribution Service (DDS)](https://en.wikipedia.org/wiki/Data_Distribution_Service) and [Time-Sensitive Networking (TSN) Ethernet](https://en.wikipedia.org/wiki/Time-Sensitive_Networking). The demo is based on the [Gazebo plugin `gazebo_ros_diff_drive`](http://gazebosim.org/tutorials?tut=ros2_installing&cat=connect_ros#TestingGazeboandROS2integration), modeling a differential drive vehicle in the [Robot Operating System (ROS) 2](https://www.ros.org/) environment, as well as on the GNU/Linux [VLAN](https://tsn.readthedocs.io/vlan.html) and [traffic control](https://tldp.org/HOWTO/Traffic-Control-HOWTO/intro.html) framework.
 
+The structure of this repository is as follows:
+- `dds_tsn_demo`: the ROS2 application implementation for the demo;
+- `scripts`: script to bring up VLAN interface with QoS configuration on Linux;
+- `tools`: a traffic analysis framework and tools to analyze `.pcapng` files for a specific protocol;
+- `images`: system block diagram of the demo.
+- `licenses`: license files
+
 The demo video below shows the challenging [moose test](https://en.wikipedia.org/wiki/Moose_test) in the Gazebo simulator, where the white ego vehicle performs a time-critical evasive maneuver. Three different scenarios are shown:
 1. successful driving without intereference,
 1. collisions due to network interference without TSN features,
@@ -8,7 +15,16 @@ The demo video below shows the challenging [moose test](https://en.wikipedia.org
 
 https://user-images.githubusercontent.com/88086083/140656406-81919e7b-8d37-4a7a-a331-be7cd32f6673.mp4
 
-As illustrated below, this demo uses three machines connected to a TSN Ethernet switch, imitating a robot sharing Ethernet links for streams with different criticality levels. `Machine C` runs the Gazebo simulation. The control of the modeled vehicle runs on an embedded controller `machine A` and publishes the safety-critical topic `/command` based on the data from the `/odometry` topic. An interference `machine B` floods the egress of `port 3` and interfere with the control traffic in the `/command` topic. This interference is likely to trigger a collision in the simulation. Interference may originate from a bug in `machine B`, see the bug icon, or from a network design sharing an Ethernet link between traffic streams with different criticality levels, see the fire icon. Fortunately, if we link the safety-critical DDS topic `/command` to a TSN stream with a high priority using [IEEE 802.1Q Priority-Based Scheduling (`PBS`)](https://en.wikipedia.org/wiki/Time-Sensitive_Networking#Scheduling_and_traffic_shaping), then the vehicle completes the moose test successfully. Furthermore, we can de-burst the interference traffic using the TSN's protocol [IEEE 802.1Qav Credit-Based Shaper (`CBS`)](https://en.wikipedia.org/wiki/Time-Sensitive_Networking#AVB_credit-based_scheduler) to ensure its egress bandwidth is limited.
+As illustrated below, this demo uses three machines connected to a TSN Ethernet switch, imitating a robot sharing Ethernet links for streams with different criticality levels.
+The components in grey are used for performance measurement, which we descrbe in deatail in the measurement section below.
+`Machine C` runs the Gazebo simulation. The control of the modeled vehicle runs on an embedded controller `machine A` and publishes the safety-critical topic `/command` based on the data from the `/odometry` topic.
+An interference `machine B` floods the egress of `port 3` and interfere with the control traffic in the `/command` topic.
+This interference is likely to trigger a collision in the simulation.
+Interference may originate from a bug in `machine B`, see the bug icon, or from a network design sharing an Ethernet link between traffic streams with different criticality levels, see the fire icon.
+Fortunately, if we link the safety-critical DDS topic `/command` to a TSN stream with a high priority using
+[IEEE 802.1Q Priority-Based Scheduling (`PBS`)](https://en.wikipedia.org/wiki/Time-Sensitive_Networking#Scheduling_and_traffic_shaping), then the vehicle completes the moose test successfully.
+Furthermore, we can de-burst the interference traffic using the TSN's protocol
+[IEEE 802.1Qav Credit-Based Shaper (`CBS`)](https://en.wikipedia.org/wiki/Time-Sensitive_Networking#AVB_credit-based_scheduler) to ensure its egress bandwidth is limited.
 
 <p align="center"><img src="images/dds_tsn_mini_demo.png" alt="simplified demo architecture" width="700" class="center"/></p>
 
@@ -138,6 +154,31 @@ iperf3 -c MACHINE_C_VLAN_INTERFACE -u -S 0x14 -t20
 1. Now start the interference as described in step 4.
 1. The vehicle should be able to successfully finish the moose test in the Gazebo simulation thanks to prioritized vehicle control traffic.
 
+## How to measure TSN performance
+
+To accurately measure the TSN performance of the network, consider [installing gPTP time synchronization on machines A and C](https://tsn.readthedocs.io/timesync.html). Furthermore, check if your network interfaces perform hardware time stamping with `sudo ethtool -T <network_interface>`.
+The measurement setup is shown in the block diagram above in grey, where *HW TS* stands for hardware timestamping.
+
+Commands to be run on each machine is introduced below; for more information on `step 1` and `step 2`, see [traffic_analysis README](tools/traffic_analysis/README.md):
+
+1. Run tshark with timestaping on machine A and C during the dds-tsn demo. After the demo is over move the `machine_a.pcapng` file to machine C.
+   ```bash
+   # on machine A
+   tshark -i <interface> --time-stamp-type adapter_unsynced -w machine_a.pcapng
+   # on machine C
+   tshark -i <interface> --time-stamp-type adapter_unsynced -w machine_c.pcapng
+   ```
+1. On machine C, run `traffic_analysis.py` script on both `.pcapng` files, save the results to a `.csv` file. Use the UDP source port (here 46278) to filter for UDP datagram only related to the `/cmd_vel` topic of Gazebo:
+   ```bash
+   $ python3 tools/traffic_analysis/traffic_analysis.py -p machine_a.pcapng -c rtps.data machine_a.csv -f 'udp.srcport == 46278'
+   $ python3 tools/traffic_analysis/traffic_analysis.py -p machine_c.pcapng -c rtps.data machine_c.csv -f 'udp.srcport == 46278'
+   ```
+1. Merge both .csv files with [rtps_csv_merge.py](tools/rtps_csv_merge/rtps_csv_merge.py):
+   ```bash
+   $ python3 tools/rtps_csv_merge/rtps_csv_merge.py machine_a.csv machine_c.csv merged.csv
+   ```
+   The generated `merged.csv` will then contain the HW timestamp from both the sending and the receiving side for a specific RTPS sequence number. This can be used for further processing.
+
 ## How to check the code style using Clang-Tidy
 The following steps have been tested on a Ubuntu 20.04 machine with ROS Foxy.
 1. Install `ament_clang_tidy` for ROS Foxy:
@@ -171,6 +212,7 @@ The following steps have been tested on a Ubuntu 20.04 machine with ROS Foxy.
 
 ## Useful links
 1. [Free S32G webinar on DDS-TSN integration in the Autoware.auto Autonomous Valet Parking application](https://www.nxp.com/design/training/dds-and-tsn-where-software-and-hardware-meet-for-dependable-communication-using-rti-connext-drive-and-nxp-s32g-processor:TIP-DDS-AND-TSN-WHERE-SOFTWARE-AND-HARDWARE-MEET)
+1. [Driving Interoperability and Performance in Automotive Systems with DDS and TSN](https://www.nxp.com/webapp/Download?colCode=DDSTSNWP) - DDS-TSN white paper co-authored by NXP and RTI
 1. https://tsn.readthedocs.io/index.html - hands-on tutorial on TSN and VLAN support in GNU/Linux
 1. https://arxiv.org/pdf/1808.10821.pdf - excellent description of the GNU/Linux traffic control and its application in robotics
 1. https://wiki.archlinux.org/title/VLAN - VLAN support in GNU/Linux
@@ -178,10 +220,8 @@ The following steps have been tested on a Ubuntu 20.04 machine with ROS Foxy.
 1. https://en.wikipedia.org/wiki/Type_of_service - Type of Service field in the IP header
 
 ## TODO:
-1. Add a short demo video with and without DDS-TSN and embed it into the README
 1. Change the name of the topics in the C++ and .world to match the illustration in README
 1. Describe the CBS configuration of the TSN switch
-1. Describe the CB configuration of the TSN switch
 
 ## License
-This software is distributed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+This software is distributed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0). License files of other software is located in the `licenses` directory.
