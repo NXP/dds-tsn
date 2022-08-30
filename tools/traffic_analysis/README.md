@@ -118,7 +118,7 @@ pytest-3
 ```
 
 ## Known limitations
-If you trigger the following exception in `pyshark` module `layers.py`, you can patch it using [this post](`https://github.com/nikirill/pyshark/commit/fc49ca9405f5c770fce15e77841be45f9e6b4dee`):
+If you trigger the following exception in `pyshark` module `layers.py`, you can patch it using [this post](https://github.com/nikirill/pyshark/commit/fc49ca9405f5c770fce15e77841be45f9e6b4dee):
 
 ```python
 Traceback (most recent call last):
