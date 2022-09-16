@@ -213,6 +213,8 @@ The following steps have been tested on a Ubuntu 20.04 machine with ROS Foxy.
 ## Useful links
 1. [Free S32G webinar on DDS-TSN integration in the Autoware.auto Autonomous Valet Parking application](https://www.nxp.com/design/training/dds-and-tsn-where-software-and-hardware-meet-for-dependable-communication-using-rti-connext-drive-and-nxp-s32g-processor:TIP-DDS-AND-TSN-WHERE-SOFTWARE-AND-HARDWARE-MEET)
 1. [Driving Interoperability and Performance in Automotive Systems with DDS and TSN](https://www.nxp.com/webapp/Download?colCode=DDSTSNWP) - DDS-TSN white paper co-authored by NXP and RTI
+1. [ROS2 presentation about DDS and TSN](https://drive.google.com/file/d/1_PvBvFd4--kLCUn3R037U-31I2E0BujN/view?usp=sharing). Here is our [presentation recording](https://drive.google.com/file/d/15jU5VVkBa7ULnnnXSDOvKT6qn516CCAR/view?usp=sharing). More about the topic, please check [the discussion thread on ROS2 Discourse](https://discourse.ros.org/t/ros2-tsn-talk-during-ros2-real-time-wg-regular-call-on-tue-1st-of-feb-16-00-cet/24099/4).
+1. [System Archiecture Study Group (SASG) presentation on middleware](https://www.sasg.nl/SASG_72_Roly-poly_on_middleware.pdf)
 1. https://tsn.readthedocs.io/index.html - hands-on tutorial on TSN and VLAN support in GNU/Linux
 1. https://arxiv.org/pdf/1808.10821.pdf - excellent description of the GNU/Linux traffic control and its application in robotics
 1. https://wiki.archlinux.org/title/VLAN - VLAN support in GNU/Linux
