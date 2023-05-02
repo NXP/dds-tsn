@@ -127,11 +127,11 @@ iperf3 -c MACHINE_C_VLAN_INTERFACE -u -S 0x14 -t20
 
     To configure VLAN on the NXP SJA1110 switch, add VLAN 30 to the membership fields of all the switch ports. In the SJA1110 SDK GUI open the `Peripheral` configuration, select the switch fabric, then click on `VLAN Lookup Table` dialogue. Then tick all ports in the section `VMEMB_PORT`, all ports in the section `BC_DOMAIN`, all ports in `TAG_PORT` and, finally, set the `VLANID` to 30.
 
-    To make the effect of the DDS-TSN integration easily visible in this demo, configure the switch to limit the link speed of the `vehicle_control command` to `100 Mbps` or lower. Otherwise, the moose test may always succeed even with interference enabled.
+    To make the effect of the DDS-TSN integration easily visible in this demo, configure the switch to limit the link speed of the `vehicle_control command` to `100 Mbps` or lower. Otherwise, the moose test may always succeed even with interference and DDS-TSN integration enabled.
 
 ### Configuration of the XML files
 In short, you may need to edit the IP address or subnet in the XML `allow_interfaces_list` field for Connext DDS and the `interfaceWhiteList` field for Fast DDS to match your local VLAN networking interface.
- 
+
 If there are multiple interfaces on a machine, we need a mechanism to steer the DDS traffic to a preferred network interface to ensure the Ethernet packets are tagged with an appropriate VLAN ID and the priority code point (PCP). Then the PCP and VLAN ID will enable TSN features in the networking devices, such as switches, for the packets. The XML profiles can define on which local interface the DDS middleware communicates. To find it out the IP address of the local VLAN interface, you can run `ifconfig` and find the IP address of the created VLAN interface on the local machine. For example, in the demo video at 0m:46s you can see how we added a VLAN interface `enp0s31f6.30` on machine C, which got `192.168.30.1`. On machine A, the VLAN interface is `eth0.30` and interface’s IP is `192.168.30.2`, as can be seen in the console around 01m:06s. So, on machine C we’ll need to set the `interfaceWhiteList` tag to `192.168.30.1`, and on machine A to `192.168.30.2`. For the Connext DDS we need to use a subnet instead of the IP address of the local interface in the `allow_interfaces_list`.
 
 Note that in the demo video the IPs are different than examples of using the `make_vlan.sh` script in the README. 
