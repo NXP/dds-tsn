@@ -1,4 +1,4 @@
-# ROS2-DDS-TSN integration demo
+# DDS-TSN integration demo
 This repository demonstrates basic advantages of integrating the [Data Distribution Service (DDS)](https://en.wikipedia.org/wiki/Data_Distribution_Service) and [Time-Sensitive Networking (TSN) Ethernet](https://en.wikipedia.org/wiki/Time-Sensitive_Networking). The demo is based on the [Gazebo plugin `gazebo_ros_diff_drive`](http://gazebosim.org/tutorials?tut=ros2_installing&cat=connect_ros#TestingGazeboandROS2integration), modeling a differential drive vehicle in the [Robot Operating System (ROS) 2](https://www.ros.org/) environment, as well as on the GNU/Linux [VLAN](https://tsn.readthedocs.io/vlan.html) and [traffic control](https://tldp.org/HOWTO/Traffic-Control-HOWTO/intro.html) framework.
 
 The structure of this repository is as follows:
@@ -76,16 +76,17 @@ The DDS-TSN mapping demo instructions below leverage the DDS XML profiles for [C
        export RMW_IMPLEMENTATION=rmw_connextdds
        ```
     - For an ARM machine: the free Debian package of Connext DDS is not available for `arm64`, however, you can download Connext DDS Professional from [here](https://www.rti.com/products) and build it on the `arm64` target.
-1. Build the code from the directory of this README on machines A and C. If you use the Connext DDS, set the environment as described in the previous step.
+1. Build the code from the repository root directory (with this README) on machines A and C. If you use the Connext DDS, set the environment as described in the previous step.
     ```bash
     git clone https://github.com/NXP/dds-tsn.git
-    cd dds_tsn
+    cd dds-tsn
     source /opt/ros/foxy/setup.bash
     colcon build
     source install/setup.sh
     ```
 
 ## Configuration
+
 ### Option A: VLAN-to-PCP mapping using egress-qos-map
 No specific Linux kernel modules are required for this option.
 On machine A, create a VLAN interface with the IP address ending with `.2`:
@@ -96,18 +97,20 @@ Most likely you'll need to override network variables in the script for your sys
 ```bash
 PIF=eth0 NETMASK=10.10 EGRESS_QOS_MAP="egress-qos-map 0:4"  ./scripts/make_vlan.bash
 ```
+
 ### Option B: DSCP-to-PCP mapping with traffic control filter
 For this option, machine A needs specific kernel configuration, see details in *Prerequisites* section above.
 The DDS distribution in use should support *TransportPriority* QoS policy.
 At the moment of writing this README, [Fast DDS did not support this feature](https://fast-dds.docs.eprosima.com/en/latest/fastdds/api_reference/dds_pim/core/policy/transportpriorityqospolicy.html) and we used RTI's Connext DDS on `arm64` for the experiment.
 Alternatively, one can use machine A with an Intel processor and the free Debian package for [RTI Connext DDS](https://www.rti.com/products).
 
-Configure VLAN interfaces with the IP address ending with `.2`. Assume your setup uses the physical interface `eth0`, netmask `10.10.*.*`, and filter on a given TOS value (default to 0x14):
+Configure VLAN interfaces with the IP address ending with `.2`. Assuming your setup uses the physical interface `eth0` and netmask `10.10.*.*`, we setup a VLAN interface that filters on a given TOS value of `0x14`:
 ```bash
 PIF=eth0 NETMASK=10.10 OPTION_B=on ./scripts/make_vlan.bash
 # to verify the configuration, send iperf3 streams to machine C and check the packet TOS and PCP value using Wireshark
 iperf3 -c MACHINE_C_VLAN_INTERFACE -u -S 0x14 -t20
 ```
+
 ### Common configuration
 1. On machine C, create a virtual interface with IP addresss ending with `.3`, for example:
    ```bash
@@ -115,8 +118,8 @@ iperf3 -c MACHINE_C_VLAN_INTERFACE -u -S 0x14 -t20
    ```
 1. Make sure you can ping the virtual interfaces on both machine A and C:
    ```bash
-   ping -c 3 192.168.30.2 # machine A
-   ping -c 3 192.168.30.3 # machine C
+   ping -c 3 10.10.30.2 # ping machine A VLAN interface
+   ping -c 3 10.10.30.3 # ping machine C VLAN interface
    ```
 1. TSN switch configuration
 
@@ -124,7 +127,14 @@ iperf3 -c MACHINE_C_VLAN_INTERFACE -u -S 0x14 -t20
 
     To configure VLAN on the NXP SJA1110 switch, add VLAN 30 to the membership fields of all the switch ports. In the SJA1110 SDK GUI open the `Peripheral` configuration, select the switch fabric, then click on `VLAN Lookup Table` dialogue. Then tick all ports in the section `VMEMB_PORT`, all ports in the section `BC_DOMAIN`, all ports in `TAG_PORT` and, finally, set the `VLANID` to 30.
 
-    To make the effect of the DDS-TSN integration easily visible in this demo, configure the switch to limit the link speed of the `vehicle_control command` to `100 Mbps`.
+    To make the effect of the DDS-TSN integration easily visible in this demo, configure the switch to limit the link speed of the `vehicle_control command` to `100 Mbps` or lower. Otherwise, the moose test may always succeed even with interference enabled.
+
+### Configuration of the XML files
+In short, you may need to edit the IP address or subnet in the XML `allow_interfaces_list` field for DDS Connext and the `interfaceWhiteList` field for Fast DDS to match your local VLAN networking interface.
+ 
+If there are multiple interfaces on a machine, we need a mechanism to steer the DDS traffic to a preferred network interface to ensure the Ethernet packets are tagged with an appropriate VLAN ID and the priority code point (PCP). Then the PCP and VLAN ID will enable TSN features in the networking devices, such as switches, for the packets. The XML profiles can define on which local interface the DDS middleware communicates. To find it out the IP address of the local VLAN interface, you can run `ifconfig` and find the IP address of the created VLAN interface on the local machine. For example, in the demo video at 0m:46s you can see how we added a VLAN interface `enp0s31f6.30` on machine C, which got `192.168.30.1`. On machine A, the VLAN interface is `eth0.30` and interface’s IP is `192.168.30.2`, as can be seen in the console around 01m:06s. So, on machine C we’ll need to set the `interfaceWhiteList` tag to `192.168.30.1`, and on machine A to `192.168.30.2`. For the DDS Connext we need to use a subnet instead of the IP address of the local interface in the `allow_interfaces_list`.
+
+Note that in the demo video the IPs are different than examples of using the `make_vlan.sh` script in the README. 
 
 ## Execution
 1. Start the `iperf3` server on machine C:
@@ -161,7 +171,7 @@ The measurement setup is shown in the block diagram above in grey, where *HW TS*
 
 Commands to be run on each machine is introduced below; for more information on `step 1` and `step 2`, see [traffic_analysis README](tools/traffic_analysis/README.md):
 
-1. Run tshark with timestaping on machine A and C during the dds-tsn demo. After the demo is over move the `machine_a.pcapng` file to machine C.
+1. Run `tshark` with timestaping on machine A and C during the dds-tsn demo. After the demo is over move the `machine_a.pcapng` file to machine C.
    ```bash
    # on machine A
    tshark -i <interface> --time-stamp-type adapter_unsynced -w machine_a.pcapng
@@ -179,29 +189,16 @@ Commands to be run on each machine is introduced below; for more information on 
    ```
    The generated `merged.csv` will then contain the HW timestamp from both the sending and the receiving side for a specific RTPS sequence number. This can be used for further processing.
 
-## How to check the code style using Clang-Tidy
-The following steps have been tested on a Ubuntu 20.04 machine with ROS Foxy.
-1. Install `ament_clang_tidy` for ROS Foxy:
-    ```bash
-    sudo apt install ros-foxy-ament-clang-tidy
-    ```
-1. Install `clang-tidy` on Linux and create a symlink to clang-tidy-6.0 which is used by `ament_clang_tidy` on ROS Foxy:
-    ```bash
-    sudo apt install clang-tidy # this will install clang-tidy-10 or later on Ubuntu 20.04
-    sudo ln -sf /usr/bin/clang-tidy-10 /usr/bin/clang-tidy-6.0
-    ```
-1. Configure checks you want to run in the file `.clan-tidy` in the directory of this README
-1. Build the ROS application with the addition of `CMAKE_EXPORT_COMPILE_COMMANDS`:
-    ```bash
-    source /opt/ros/foxy/setup.bash
-    colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-    ```
-1. Run `ament_clang_tidy` on the build directory to perform the checks:
-    ```bash
-    ament_clang_tidy --config .clang-tidy build/
-    ```
+### Calibration to reproduce the vehicle crash on various platforms 
+If the moose test passes with interference, you may need to tune the demo to your platform. With the help of various users of our repository, we derived the following recommendations to reproduce the crash due to interference:
+1. Double-check you followed the instructions, including the reduction of the Ethernet link speed down to 100Mbps or lower.
+1. Increase the severity of delaying/dropping a control packet due to interference by increasing the time period between control messages. In [our code](dds_tsn_demo/src/vehicle_control.cpp#L45), the period is 10ms now. By increasing it gradually on machine A, one can get to the point when the moose test starts to fail. Once this threshold is found, the sensitivity of the interference should become higher.
+1. Tweak the vehicle steering control in the [steeringCommands](dds_tsn_demo/src/vehicle_control.cpp#L68) table. The table includes a list of ego vehicle’s longitudinal coordinates and associated linear and angular components of the velocity applied at this coordinate to the ego vehicle by the vehicle controller. By varying the coordinates, we can modify where in the trajectory the velocity of the ego vehicle changes. Changing the velocity components themselves adjusts the motion changes at a given location.
+1. Modify the simulated scene in the [modeled world](dds_tsn_demo/world/gazebo_diff_drive_moose_test.world) in terms of object position, size and mass to make the timing of control packets even more critical. Modification of the world can be easily done in the [Gazebo simulator GUI](https://classic.gazebosim.org/tutorials?tut=build_world&ver=1.9).
+1. Lower the CPU clock speed, especially, if you use desktop- or server-grade processors instead of embedded SoCs, see email Thursday, March 23, 2023 8:45 AM
 
 ## Troubleshooting
+1. If you get an error `colcon: command not found`, run `sudo apt install python3-colcon-common-extensions`.
 1. If you get an error while starting Gazebo `X Error of failed request: BadValue (integer parameter out of range for operation)` try rebooting your machine. 
 1. If you can't start Gazebo due to an error `[gazebo-1] [Err] [Master.cc:95] EXCEPTION: Unable to start server[bind: Address already in use]. There is probably another Gazebo process running.`, run `killall gzserver gzclient`.
 1. During ROS installation, apt update fails due to ROS repository public key issues. To resolve it, run the commands below:
@@ -226,4 +223,4 @@ The following steps have been tested on a Ubuntu 20.04 machine with ROS Foxy.
 1. Describe the CBS configuration of the TSN switch
 
 ## License
-This software is distributed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0). License files of other software is located in the `licenses` directory.
+This software is distributed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
