@@ -129,7 +129,7 @@ iperf3 -c MACHINE_C_VLAN_INTERFACE -u -S 0x14 -t20
 
     To make the effect of the DDS-TSN integration easily visible in this demo, configure the switch to limit the link speed of the `vehicle_control command` to `100 Mbps` or lower. Otherwise, the moose test may always succeed even with interference and DDS-TSN integration enabled.
 
-### Configuration of the XML files
+### Network configuration in the DDS XML profiles
 In short, you may need to edit the IP address or subnet in the XML `allow_interfaces_list` field for Connext DDS and the `interfaceWhiteList` field for Fast DDS to match your local VLAN networking interface.
 
 If there are multiple interfaces on a machine, we need a mechanism to steer the DDS traffic to a preferred network interface to ensure the Ethernet packets are tagged with an appropriate VLAN ID and the priority code point (PCP). Then the PCP and VLAN ID will enable TSN features in the networking devices, such as switches, for the packets. The XML profiles can define on which local interface the DDS middleware communicates. To find it out the IP address of the local VLAN interface, you can run `ifconfig` and find the IP address of the created VLAN interface on the local machine. For example, in the demo video at 0m:46s you can see how we added a VLAN interface `enp0s31f6.30` on machine C, which got `192.168.30.1`. On machine A, the VLAN interface is `eth0.30` and interface’s IP is `192.168.30.2`, as can be seen in the console around 01m:06s. So, on machine C we’ll need to set the `interfaceWhiteList` tag to `192.168.30.1`, and on machine A to `192.168.30.2`. For the Connext DDS we need to use a subnet instead of the IP address of the local interface in the `allow_interfaces_list`.
@@ -164,6 +164,14 @@ Note that in the demo video the IPs are different than examples of using the `m
 1. Now start the interference as described in step 4.
 1. The vehicle should be able to successfully finish the moose test in the Gazebo simulation thanks to prioritized vehicle control traffic.
 
+### Calibration to reproduce the vehicle crash on various platforms
+If the moose test passes with interference and DDS-TSN integration enabled, you may need to tune the demo to your platform. With the help of various users of our repository, we derived the following recommendations to reproduce the crash due to interference:
+1. Double-check you followed the instructions, including the reduction of the Ethernet link speed down to 100Mbps or lower.
+1. Increase the severity of delaying/dropping a control packet due to interference by increasing the time period between control messages. In [our code](dds_tsn_demo/src/vehicle_control.cpp#L45), the period is 10ms now. By increasing it gradually on machine A, one can get to the point when the moose test starts to fail. Once this threshold is found, the sensitivity of the interference should become higher.
+1. Tweak the vehicle steering control in the [steeringCommands](dds_tsn_demo/src/vehicle_control.cpp#L68) table. The table includes a list of ego vehicle’s longitudinal coordinates and associated linear and angular components of the velocity applied at this coordinate to the ego vehicle by the vehicle controller. By varying the coordinates, we can modify where in the trajectory the velocity of the ego vehicle changes. Changing the velocity components themselves adjusts the motion changes at a given location.
+1. Modify the simulated scene in the [modeled world](dds_tsn_demo/world/gazebo_diff_drive_moose_test.world) in terms of object position, size and mass to make the timing of control packets even more critical. Modification of the world can be easily done in the [Gazebo simulator GUI](https://classic.gazebosim.org/tutorials?tut=build_world&ver=1.9).
+1. Lower the CPU clock speed, especially, if you use desktop- or server-grade processors instead of embedded SoCs.
+
 ## How to measure TSN performance
 
 To accurately measure the TSN performance of the network, consider [installing gPTP time synchronization on machines A and C](https://tsn.readthedocs.io/timesync.html). Furthermore, check if your network interfaces perform hardware time stamping with `sudo ethtool -T <network_interface>`.
@@ -189,14 +197,6 @@ Commands to be run on each machine is introduced below; for more information on 
    ```
    The generated `merged.csv` will then contain the HW timestamp from both the sending and the receiving side for a specific RTPS sequence number. This can be used for further processing.
 
-### Calibration to reproduce the vehicle crash on various platforms
-If the moose test passes with interference and DDS-TSN integration enabled, you may need to tune the demo to your platform. With the help of various users of our repository, we derived the following recommendations to reproduce the crash due to interference:
-1. Double-check you followed the instructions, including the reduction of the Ethernet link speed down to 100Mbps or lower.
-1. Increase the severity of delaying/dropping a control packet due to interference by increasing the time period between control messages. In [our code](dds_tsn_demo/src/vehicle_control.cpp#L45), the period is 10ms now. By increasing it gradually on machine A, one can get to the point when the moose test starts to fail. Once this threshold is found, the sensitivity of the interference should become higher.
-1. Tweak the vehicle steering control in the [steeringCommands](dds_tsn_demo/src/vehicle_control.cpp#L68) table. The table includes a list of ego vehicle’s longitudinal coordinates and associated linear and angular components of the velocity applied at this coordinate to the ego vehicle by the vehicle controller. By varying the coordinates, we can modify where in the trajectory the velocity of the ego vehicle changes. Changing the velocity components themselves adjusts the motion changes at a given location.
-1. Modify the simulated scene in the [modeled world](dds_tsn_demo/world/gazebo_diff_drive_moose_test.world) in terms of object position, size and mass to make the timing of control packets even more critical. Modification of the world can be easily done in the [Gazebo simulator GUI](https://classic.gazebosim.org/tutorials?tut=build_world&ver=1.9).
-1. Lower the CPU clock speed, especially, if you use desktop- or server-grade processors instead of embedded SoCs.
-
 ## Troubleshooting
 1. If you get an error `colcon: command not found`, run `sudo apt install python3-colcon-common-extensions`.
 1. If you get an error while starting Gazebo `X Error of failed request: BadValue (integer parameter out of range for operation)` try rebooting your machine. 
@@ -207,7 +207,7 @@ If the moose test passes with interference and DDS-TSN integration enabled, you 
     sudo apt update
     ```
 
-## Useful links
+## Background information
 1. [Free S32G webinar on DDS-TSN integration in the Autoware.auto Autonomous Valet Parking application](https://www.nxp.com/design/training/dds-and-tsn-where-software-and-hardware-meet-for-dependable-communication-using-rti-connext-drive-and-nxp-s32g-processor:TIP-DDS-AND-TSN-WHERE-SOFTWARE-AND-HARDWARE-MEET)
 1. [Driving Interoperability and Performance in Automotive Systems with DDS and TSN](https://www.nxp.com/webapp/Download?colCode=DDSTSNWP) - DDS-TSN white paper co-authored by NXP and RTI
 1. [ROS2 presentation about DDS and TSN](https://drive.google.com/file/d/1_PvBvFd4--kLCUn3R037U-31I2E0BujN/view?usp=sharing). Here is our [presentation recording](https://drive.google.com/file/d/15jU5VVkBa7ULnnnXSDOvKT6qn516CCAR/view?usp=sharing). More about the topic, please check [the discussion thread on ROS2 Discourse](https://discourse.ros.org/t/ros2-tsn-talk-during-ros2-real-time-wg-regular-call-on-tue-1st-of-feb-16-00-cet/24099/4).
